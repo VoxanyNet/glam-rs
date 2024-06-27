@@ -1,4 +1,6 @@
+use diff::Diff;
 // Generated from vec.rs.tera template. Edit the template, not the generated file.
+use serde::{Deserialize, Serialize};
 
 use crate::{f32::math, BVec2, Vec3};
 
@@ -13,9 +15,11 @@ use core::{f32, ops::*};
 pub const fn vec2(x: f32, y: f32) -> Vec2 {
     Vec2::new(x, y)
 }
-
 /// A 2-dimensional vector.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Diff, Serialize, Deserialize)]
+#[diff(attr(
+    #[derive(Serialize, Deserialize)]
+))]
 #[cfg_attr(feature = "cuda", repr(align(8)))]
 #[cfg_attr(not(target_arch = "spirv"), repr(C))]
 #[cfg_attr(target_arch = "spirv", repr(simd))]
