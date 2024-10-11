@@ -46,7 +46,7 @@ padding so that object sizes and layouts will not change between architectures. 
 math fallback implementations exist when SIMD is not available. It is intended to add support for
 other SIMD architectures once they appear in stable Rust.
 
-Currently only SSE2 on x86/x86_64 is supported as this is what stable Rust supports.
+Currently only SSE2 on x86/x86_64, NEON on Aarch64, and simd128 on WASM are supported.
 
 ## Vec3A and Mat3A
 
@@ -252,7 +252,7 @@ and benchmarks.
 The minimum supported Rust version is `1.68.2`.
 
 */
-#![doc(html_root_url = "https://docs.rs/glam/0.28.0")]
+#![doc(html_root_url = "https://docs.rs/glam/0.29.0")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(target_arch = "spirv", feature(repr_simd))]
 #![deny(

@@ -1,6 +1,11 @@
 // Generated from mat.rs.tera template. Edit the template, not the generated file.
 
-use crate::{f64::math, swizzles::*, DMat2, DMat4, DQuat, DVec2, DVec3, EulerRot, Mat3};
+use crate::{
+    euler::{FromEuler, ToEuler},
+    f64::math,
+    swizzles::*,
+    DMat2, DMat4, DQuat, DVec2, DVec3, EulerRot, Mat3,
+};
 #[cfg(not(target_arch = "spirv"))]
 use core::fmt;
 use core::iter::{Product, Sum};
@@ -160,6 +165,36 @@ impl DMat3 {
         )
     }
 
+    /// Creates a 3x3 matrix from the minor of the given 4x4 matrix, discarding the `i`th column
+    /// and `j`th row.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i` or `j` is greater than 3.
+    #[inline]
+    #[must_use]
+    pub fn from_mat4_minor(m: DMat4, i: usize, j: usize) -> Self {
+        match (i, j) {
+            (0, 0) => Self::from_cols(m.y_axis.yzw(), m.z_axis.yzw(), m.w_axis.yzw()),
+            (0, 1) => Self::from_cols(m.y_axis.xzw(), m.z_axis.xzw(), m.w_axis.xzw()),
+            (0, 2) => Self::from_cols(m.y_axis.xyw(), m.z_axis.xyw(), m.w_axis.xyw()),
+            (0, 3) => Self::from_cols(m.y_axis.xyz(), m.z_axis.xyz(), m.w_axis.xyz()),
+            (1, 0) => Self::from_cols(m.x_axis.yzw(), m.z_axis.yzw(), m.w_axis.yzw()),
+            (1, 1) => Self::from_cols(m.x_axis.xzw(), m.z_axis.xzw(), m.w_axis.xzw()),
+            (1, 2) => Self::from_cols(m.x_axis.xyw(), m.z_axis.xyw(), m.w_axis.xyw()),
+            (1, 3) => Self::from_cols(m.x_axis.xyz(), m.z_axis.xyz(), m.w_axis.xyz()),
+            (2, 0) => Self::from_cols(m.x_axis.yzw(), m.y_axis.yzw(), m.w_axis.yzw()),
+            (2, 1) => Self::from_cols(m.x_axis.xzw(), m.y_axis.xzw(), m.w_axis.xzw()),
+            (2, 2) => Self::from_cols(m.x_axis.xyw(), m.y_axis.xyw(), m.w_axis.xyw()),
+            (2, 3) => Self::from_cols(m.x_axis.xyz(), m.y_axis.xyz(), m.w_axis.xyz()),
+            (3, 0) => Self::from_cols(m.x_axis.yzw(), m.y_axis.yzw(), m.z_axis.yzw()),
+            (3, 1) => Self::from_cols(m.x_axis.xzw(), m.y_axis.xzw(), m.z_axis.xzw()),
+            (3, 2) => Self::from_cols(m.x_axis.xyw(), m.y_axis.xyw(), m.z_axis.xyw()),
+            (3, 3) => Self::from_cols(m.x_axis.xyz(), m.y_axis.xyz(), m.z_axis.xyz()),
+            _ => panic!("index out of bounds"),
+        }
+    }
+
     /// Creates a 3D rotation matrix from the given quaternion.
     ///
     /// # Panics
@@ -221,8 +256,26 @@ impl DMat3 {
     #[inline]
     #[must_use]
     pub fn from_euler(order: EulerRot, a: f64, b: f64, c: f64) -> Self {
-        let quat = DQuat::from_euler(order, a, b, c);
-        Self::from_quat(quat)
+        Self::from_euler_angles(order, a, b, c)
+    }
+
+    /// Extract Euler angles with the given Euler rotation order.
+    ///
+    /// Note if the input matrix contains scales, shears, or other non-rotation transformations then
+    /// the resulting Euler angles will be ill-defined.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if any input matrix column is not normalized when `glam_assert` is enabled.
+    #[inline]
+    #[must_use]
+    pub fn to_euler(&self, order: EulerRot) -> (f64, f64, f64) {
+        glam_assert!(
+            self.x_axis.is_normalized()
+                && self.y_axis.is_normalized()
+                && self.z_axis.is_normalized()
+        );
+        self.to_euler_angles(order)
     }
 
     /// Creates a 3D rotation matrix from `angle` (in radians) around the x axis.

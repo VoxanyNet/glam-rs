@@ -1,6 +1,11 @@
 // Generated from mat.rs.tera template. Edit the template, not the generated file.
 
-use crate::{f32::math, swizzles::*, DMat3, EulerRot, Mat2, Mat3, Mat4, Quat, Vec2, Vec3, Vec3A};
+use crate::{
+    euler::{FromEuler, ToEuler},
+    f32::math,
+    swizzles::*,
+    DMat3, EulerRot, Mat2, Mat3, Mat4, Quat, Vec2, Vec3, Vec3A,
+};
 #[cfg(not(target_arch = "spirv"))]
 use core::fmt;
 use core::iter::{Product, Sum};
@@ -159,6 +164,100 @@ impl Mat3A {
         )
     }
 
+    /// Creates a 3x3 matrix from the minor of the given 4x4 matrix, discarding the `i`th column
+    /// and `j`th row.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i` or `j` is greater than 3.
+    #[inline]
+    #[must_use]
+    pub fn from_mat4_minor(m: Mat4, i: usize, j: usize) -> Self {
+        match (i, j) {
+            (0, 0) => Self::from_cols(
+                Vec3A::from_vec4(m.y_axis.yzww()),
+                Vec3A::from_vec4(m.z_axis.yzww()),
+                Vec3A::from_vec4(m.w_axis.yzww()),
+            ),
+            (0, 1) => Self::from_cols(
+                Vec3A::from_vec4(m.y_axis.xzww()),
+                Vec3A::from_vec4(m.z_axis.xzww()),
+                Vec3A::from_vec4(m.w_axis.xzww()),
+            ),
+            (0, 2) => Self::from_cols(
+                Vec3A::from_vec4(m.y_axis.xyww()),
+                Vec3A::from_vec4(m.z_axis.xyww()),
+                Vec3A::from_vec4(m.w_axis.xyww()),
+            ),
+            (0, 3) => Self::from_cols(
+                Vec3A::from_vec4(m.y_axis.xyzw()),
+                Vec3A::from_vec4(m.z_axis.xyzw()),
+                Vec3A::from_vec4(m.w_axis.xyzw()),
+            ),
+            (1, 0) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.yzww()),
+                Vec3A::from_vec4(m.z_axis.yzww()),
+                Vec3A::from_vec4(m.w_axis.yzww()),
+            ),
+            (1, 1) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xzww()),
+                Vec3A::from_vec4(m.z_axis.xzww()),
+                Vec3A::from_vec4(m.w_axis.xzww()),
+            ),
+            (1, 2) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyww()),
+                Vec3A::from_vec4(m.z_axis.xyww()),
+                Vec3A::from_vec4(m.w_axis.xyww()),
+            ),
+            (1, 3) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyzw()),
+                Vec3A::from_vec4(m.z_axis.xyzw()),
+                Vec3A::from_vec4(m.w_axis.xyzw()),
+            ),
+            (2, 0) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.yzww()),
+                Vec3A::from_vec4(m.y_axis.yzww()),
+                Vec3A::from_vec4(m.w_axis.yzww()),
+            ),
+            (2, 1) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xzww()),
+                Vec3A::from_vec4(m.y_axis.xzww()),
+                Vec3A::from_vec4(m.w_axis.xzww()),
+            ),
+            (2, 2) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyww()),
+                Vec3A::from_vec4(m.y_axis.xyww()),
+                Vec3A::from_vec4(m.w_axis.xyww()),
+            ),
+            (2, 3) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyzw()),
+                Vec3A::from_vec4(m.y_axis.xyzw()),
+                Vec3A::from_vec4(m.w_axis.xyzw()),
+            ),
+            (3, 0) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.yzww()),
+                Vec3A::from_vec4(m.y_axis.yzww()),
+                Vec3A::from_vec4(m.z_axis.yzww()),
+            ),
+            (3, 1) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xzww()),
+                Vec3A::from_vec4(m.y_axis.xzww()),
+                Vec3A::from_vec4(m.z_axis.xzww()),
+            ),
+            (3, 2) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyww()),
+                Vec3A::from_vec4(m.y_axis.xyww()),
+                Vec3A::from_vec4(m.z_axis.xyww()),
+            ),
+            (3, 3) => Self::from_cols(
+                Vec3A::from_vec4(m.x_axis.xyzw()),
+                Vec3A::from_vec4(m.y_axis.xyzw()),
+                Vec3A::from_vec4(m.z_axis.xyzw()),
+            ),
+            _ => panic!("index out of bounds"),
+        }
+    }
+
     /// Creates a 3D rotation matrix from the given quaternion.
     ///
     /// # Panics
@@ -220,8 +319,26 @@ impl Mat3A {
     #[inline]
     #[must_use]
     pub fn from_euler(order: EulerRot, a: f32, b: f32, c: f32) -> Self {
-        let quat = Quat::from_euler(order, a, b, c);
-        Self::from_quat(quat)
+        Self::from_euler_angles(order, a, b, c)
+    }
+
+    /// Extract Euler angles with the given Euler rotation order.
+    ///
+    /// Note if the input matrix contains scales, shears, or other non-rotation transformations then
+    /// the resulting Euler angles will be ill-defined.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if any input matrix column is not normalized when `glam_assert` is enabled.
+    #[inline]
+    #[must_use]
+    pub fn to_euler(&self, order: EulerRot) -> (f32, f32, f32) {
+        glam_assert!(
+            self.x_axis.is_normalized()
+                && self.y_axis.is_normalized()
+                && self.z_axis.is_normalized()
+        );
+        self.to_euler_angles(order)
     }
 
     /// Creates a 3D rotation matrix from `angle` (in radians) around the x axis.
