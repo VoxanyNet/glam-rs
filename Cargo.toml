@@ -50,7 +50,7 @@ serde = { version = "1.0" }
 rkyv = { version = "0.7", optional = true, default-features = false }
 bytecheck = { version = "0.7", optional = true, default-features = false }
 libm = { version = "0.2", optional = true, default-features = false}
-diff-struct = {git = "https://github.com/VoxanyNet/diff-struct", rev = "9f3990a29011bbbb84c40ca21f110ef8a1d343d0"}
+diff-struct = "0.5.3"
 
 [dev-dependencies]
 # rand_xoshiro is required for tests if rand is enabled
